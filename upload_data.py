@@ -14,6 +14,9 @@ import plotly
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+import configparser
+import argparse
+from datetime import date
 # =============================================================================
 # FUNCTIONS
 # =============================================================================
@@ -154,9 +157,13 @@ def print_database_summary_per_clone_sensitive_percentage(df_fret):
     print(table.to_string())
     print()
 
-def load_data_and_phenotype(path_to_pickle, include_HPAF = False):
+def load_data_and_phenotype(path_to_pickle,config, include_HPAF = False):
+    
+    
     # Load data
     df_fret = pd.read_pickle(path_to_pickle)
+    
+    print('Reading ', path_to_pickle)
     
     # remove discarded cells
     df_fret = df_fret[~np.isnan(df_fret['Death Time'])]
@@ -169,22 +176,20 @@ def load_data_and_phenotype(path_to_pickle, include_HPAF = False):
     # rename K710% by KC7 (bad naming during LCM)
     df_fret['Clone'] = df_fret['Clone'].replace({'KC710%': 'KC7'})
     df_fret["IC50"] = df_fret["Cell Line"].map({
-    "PANC": 25,
-    "HeLa": 25,
-    "DLD": 10,
-    "SW837": 40
+    "PANC": config.getfloat('IC50','IC50_PANC'),
+    "HeLa": config.getfloat('IC50','IC50_HeLa'),
+    "DLD": config.getfloat('IC50','IC50_DLD'),
+    "SW837": config.getfloat('IC50','IC50_SW837')
     })
     
     df_fret["Emax"] = df_fret["Cell Line"].map({
-    "PANC": 75,
-    "HeLa": 75,
-    "DLD": 50,
-    "SW837": 100
+    "PANC": config.getfloat('Emax','Emax_PANC'),
+    "HeLa": config.getfloat('Emax','Emax_HeLa'),
+    "DLD": config.getfloat('Emax','Emax_DLD'),
+    "SW837": config.getfloat('Emax','Emax_SW837')
     })
     
     # remove 2023 12 06 - cf One Note
-    from datetime import date
-
     # pbm KC4 and KC7: bad manip
     d0 = date(2023, 12, 6)
     
@@ -202,7 +207,7 @@ def load_data_and_phenotype(path_to_pickle, include_HPAF = False):
     d8 = date(2023,10,17)
     d9 = date(2023,10,19)
     
-    df_weird = pd.DataFrame()
+    # df_weird = pd.DataFrame()
     for d in [d0, d1,d2,d3,d4,d5,d6,d7,d8,d9]:
         # df_weird = pd.concat((df_weird,df_fret[df_fret.Date == d] ), axis = 0)
         df_fret = df_fret[df_fret.Date != d]
@@ -222,10 +227,32 @@ def load_data_and_phenotype(path_to_pickle, include_HPAF = False):
     else:
         return df_fret[df_fret['Cell Line']!= 'HPAFII']
  
+def parse_arguments_upload_data():
+   
+    parser = argparse.ArgumentParser(
+        description='Run bayesian hierarchical apoptosis model inference')
+    parser.add_argument('--config_file', default = "config_parameters.ini", help='Path to configuration files')
+  
+
+    return parser.parse_args()
+
+
+
 # =============================================================================
 # MAIN
 # =============================================================================
-if __name__=='__main__':
-   df_fret = load_data_and_phenotype(path_to_pickle = "C:/Users/mpere/Desktop/BHI_Apoptosis/BI_Apoptosis_data/dataset_train_BI_apoptosis_200.pkl",
+if __name__ == "__main__":
+    args = parse_arguments_upload_data()
+    config_pipeline_file = args.config_file
+    
+    # Open config file
+    config = configparser.ConfigParser()
+    # print(config_file)
+    config.read(config_pipeline_file)
+    # default_folder = os.path.join('/mnt', 'nas', '02_Analyzed_data', 'Image_analysis', '2025')
+    data_file = config.get('PathData','path_dataset_mmg_cluster')
+    data_file = config.get('PathData','path_mp_laptop')
+
+    df_fret = load_data_and_phenotype(data_file,config,
                                      include_HPAF = False)
     

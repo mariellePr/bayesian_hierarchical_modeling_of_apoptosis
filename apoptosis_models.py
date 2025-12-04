@@ -241,15 +241,16 @@ def eaim_system(t, y, params):
     
     return dy
 
-def eaim_system_bayesian(y,t,params):
+
+def eaim_system_bayesian(y,t, theta ):
     """
-    y: array of 9 variables
+    y: array of 10 variables
     % T, R, Z0, Z1,pC8, Z2, Z3, FLIP, C8, FRET
 
     params: array/list with at least 8 elements
     alphaR_3: fixed parameter (from MATLAB code, missing in snippet)
     """
-    dy = np.zeros_like(y)
+  
     
     # Fixed parameters 
     K1_hat = rK1bK1 = 3.32807674e+01 # MATLAB params(3)
@@ -262,10 +263,10 @@ def eaim_system_bayesian(y,t,params):
     rK_fret = 3.0046e-04
     alphaC8 = 8.490566037735849
     
-    T,R, Z0, Z1, pC8, Z2, Z3, FLIP, C8, FRET = y
+    T,R, Z0, Z1, pC8, Z2, Z3, FLIP, C8, FRET = y[0], y[1],y[2],y[3], y[4], y[5], y[6], y[7], y[8], y[9]
 
     
-    alpha0_tilde, alpha1_tilde, K_deg = params
+    alpha0_tilde, alpha1_tilde, K_deg = theta[0], theta[1], theta[2]
 
     # Equations
     # attention 
@@ -273,32 +274,33 @@ def eaim_system_bayesian(y,t,params):
     # Z2^c = Z1^e
     # Z1^c = Z3^e
     # Trail T
-    dy[0] = -((T * R**3) / (R**3 + alphaR_3)) + rK1bK1 * Z0
+    T_new = -((T * R**3) / (R**3 + alphaR_3)) + rK1bK1 * Z0
     
     # Receptor R
-    dy[1] = -3*((T * R**3) / (R**3 + alphaR_3)) + 3*rK1bK1 * Z0
+    R_new = -3*((T * R**3) / (R**3 + alphaR_3)) + 3*rK1bK1 * Z0
     
     # Z0 = T:R^3 
-    dy[2] = ((T * R**3) / (R**3 + alphaR_3)) - rK1bK1*Z0 - rK3K1*Z0*FLIP**3 +\
+    Z0_new = ((T * R**3) / (R**3 + alphaR_3)) - rK1bK1*Z0 - rK3K1*Z0*FLIP**3 +\
         rK3bK3*rK3K1*Z1 - rK2K1*Z0*pC8**2 + rK2bK2*rK2K1*Z2 + alpha0_tilde*Z2
         
     # Z1 = 
-    dy[3] = rK3K1*Z0*FLIP**3 - rK3bK3*rK3K1*Z1
+    Z1_new = rK3K1*Z0*FLIP**3 - rK3bK3*rK3K1*Z1
     # pC8
-    dy[4] = -2*rK2K1*Z0*pC8**2 + 2*rK2bK2*rK2K1*Z2
+    pC8_new = -2*rK2K1*Z0*pC8**2 + 2*rK2bK2*rK2K1*Z2
     # Z2 = FADD = T:R^3:pC8^2
-    dy[5] = rK2K1*Z0*pC8**2 - rK2bK2*rK2K1*Z2 - rK2K1*Z2 *FLIP + rK2bK2*rK2K1*Z3\
+    Z2_new = rK2K1*Z0*pC8**2 - rK2bK2*rK2K1*Z2 - rK2K1*Z2 *FLIP + rK2bK2*rK2K1*Z3\
         - alpha0_tilde*Z2 
     # Z3 = ?
-    dy[6] = rK2K1*Z2 *FLIP - rK2bK2*rK2K1*Z3 - alpha1_tilde*Z3
+    Z3_new = rK2K1*Z2 *FLIP - rK2bK2*rK2K1*Z3 - alpha1_tilde*Z3
     # FLIP
-    dy[7] = -3*rK3K1*Z0*FLIP**3 + 3*rK3bK3*rK3K1*Z1 - rK2K1*Z2*FLIP + rK2bK2*rK2K1*Z3
+    FLIP_new = -3*rK3K1*Z0*FLIP**3 + 3*rK3bK3*rK3K1*Z1 - rK2K1*Z2*FLIP + rK2bK2*rK2K1*Z3
     # C8
-    dy[8] = alpha0_tilde*Z2 + alpha1_tilde*Z3 - K_deg*(C8/(alphaC8 + C8)) - rK_fret*C8
+    C8_new = alpha0_tilde*Z2 + alpha1_tilde*Z3 - K_deg*(C8/(alphaC8 + C8)) - rK_fret*C8
     # FRET
-    dy[9] = rK_fret*C8  # last line from MATLAB code
+    FRET_new = rK_fret*C8  # last line from MATLAB code
     
-    return [dy[0],dy[1],dy[2],dy[3],dy[4],dy[5],dy[6],dy[7],dy[8],dy[9] ]
+    return [T_new, R_new, Z0_new,Z1_new, pC8_new, Z2_new, Z3_new,FLIP_new, C8_new, FRET_new]
+
 
 
 # =============================================================================

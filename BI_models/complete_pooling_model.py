@@ -18,8 +18,10 @@ import pandas as pd
 from pymc.ode import DifferentialEquation
 
 
-import nov_2025.upload_data as upload_data
-import nov_2025.apoptosis_models as ap_models
+
+import upload_data as upload_data
+import apoptosis_models as ap_models
+
 
 az.rcParams['stats.ci_prob'] =0.95
 RANDOM_SEED = 42
