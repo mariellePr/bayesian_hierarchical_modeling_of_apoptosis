@@ -18,8 +18,8 @@ import pandas as pd
 
 
 
-import nov_2025.upload_data as upload_data
-import nov_2025.apoptosis_models as ap_models
+import upload_data as upload_data
+import apoptosis_models as ap_models
 
 # =============================================================================
 # FUNCTIONS
