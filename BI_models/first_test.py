@@ -18,11 +18,15 @@ import pandas as pd
 from pymc.ode import DifferentialEquation
 import pytensor.tensor as pt
 import configparser
-
+import sys
 
 from icecream import ic
+from pathlib import Path
 
-import upload_data as upload_data
+# Add parent folder to Python path
+parent_dir = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(parent_dir))
+import upload_data 
 import apoptosis_models as ap_models
 
 
@@ -413,7 +417,7 @@ def parse_arguments_partial_pooling():
    
     parser = argparse.ArgumentParser(
         description='Run bayesian hierarchical apoptosis model inference')
-    parser.add_argument('--config_file', default = "../config_parameters.ini", help='Path to configuration files')
+    parser.add_argument('--config_file', default = "config_parameters.ini", help='Path to configuration files')
   
 
     return parser.parse_args()

@@ -31,8 +31,8 @@ def ensure_directory_exists(data_pathway):
         print(f"Directory '{data_pathway}' already exists.")
         
         
-def add_cell_phenotype_6h(df_fret):
-    df_fret["phenotype_6h"] = np.where(df_fret["Death Time"] <= 360, "S", "T")
+def add_cell_phenotype(df_fret):
+    df_fret["phenotype"] = np.where(df_fret["Death Time"] <= 360, "S", "T")
     return df_fret
 
 
@@ -42,7 +42,7 @@ def print_database_summary_per_cell_line(df_fret):
     # Count number of S and T per cell line and dose
     summary = (
         df_fret
-        .groupby(['Dose', 'Cell Line', 'phenotype_6h'])
+        .groupby(['Dose', 'Cell Line', 'phenotype'])
         .size()
         .unstack(fill_value=0)  # Separate S/T into columns
         .reset_index()
@@ -60,7 +60,7 @@ def print_database_summary_per_cell_line(df_fret):
     table = summary.pivot(index='Dose', columns='Cell Line', values='Summary').fillna('-')
 
       # --- Add totals row per S and T ---
-    totals = df_fret.groupby(['Cell Line', 'phenotype_6h']).size().unstack(fill_value=0)
+    totals = df_fret.groupby(['Cell Line', 'phenotype']).size().unstack(fill_value=0)
     totals_row = {cl: f"S:{totals.get('S', {}).get(cl, 0)} | T:{totals.get('T', {}).get(cl, 0)}"
                   for cl in table.columns}
     table.loc['Total'] = totals_row
@@ -73,13 +73,13 @@ def print_database_summary_per_cell_line(df_fret):
 def print_database_summary_per_clone(df_fret):
     """
     Print a database summary of counts of sensitive (S) and tolerant (T) cells
-    grouped by Dose, Cell Line, phenotype_6h, and Clone.
+    grouped by Dose, Cell Line, phenotype, and Clone.
     """
 
     # Count number of S and T per cell line, dose, and clone
     summary = (
         df_fret
-        .groupby(['Dose', 'Cell Line', 'Clone', 'phenotype_6h'])
+        .groupby(['Dose', 'Cell Line', 'Clone', 'phenotype'])
         .size()
         .unstack(fill_value=0)  # Separate S/T into columns
         .reset_index()
@@ -97,7 +97,7 @@ def print_database_summary_per_clone(df_fret):
     table = summary.pivot(index='Dose', columns=['Cell Line', 'Clone'], values='Summary').fillna('-')
 
     # --- Add totals row per S and T ---
-    totals = df_fret.groupby(['Cell Line', 'Clone', 'phenotype_6h']).size().unstack(fill_value=0)
+    totals = df_fret.groupby(['Cell Line', 'Clone', 'phenotype']).size().unstack(fill_value=0)
     totals_row = {}
     for cl, clone in table.columns:
         s_total = totals.get('S', {}).get((cl, clone), 0)
@@ -115,13 +115,13 @@ def print_database_summary_per_clone(df_fret):
 def print_database_summary_per_clone_sensitive_percentage(df_fret):
     """
     Print a database summary of counts of sensitive (S) and tolerant (T) cells
-    grouped by Dose, Cell Line, phenotype_6h, and Clone.
+    grouped by Dose, Cell Line, phenotype, and Clone.
     """
 
     # Count number of S and T per cell line, dose, and clone
     summary = (
         df_fret
-        .groupby(['Dose', 'Cell Line', 'Clone', 'phenotype_6h'])
+        .groupby(['Dose', 'Cell Line', 'Clone', 'phenotype'])
         .size()
         .unstack(fill_value=0)  # Separate S/T into columns
         .reset_index()
@@ -141,7 +141,7 @@ def print_database_summary_per_clone_sensitive_percentage(df_fret):
     table = summary.pivot(index='Dose', columns=['Cell Line', 'Clone'], values='Summary').fillna('-')
 
     # --- Add totals row per S and T ---
-    totals = df_fret.groupby(['Cell Line', 'Clone', 'phenotype_6h']).size().unstack(fill_value=0)
+    totals = df_fret.groupby(['Cell Line', 'Clone', 'phenotype']).size().unstack(fill_value=0)
     totals_row = {}
     for cl, clone in table.columns:
         s_total = totals.get('S', {}).get((cl, clone), 0)
@@ -214,8 +214,8 @@ def load_data_and_phenotype(path_to_pickle,config, include_HPAF = False):
        
     
     # determine cell phenotype
-    df_fret = add_cell_phenotype_6h(df_fret)
-    # df_weird = add_cell_phenotype_6h(df_weird)
+    df_fret = add_cell_phenotype(df_fret)
+    # df_weird = add_cell_phenotype(df_weird)
  
     
     # print database summary
@@ -254,4 +254,4 @@ if __name__ == "__main__":
 
     df_fret = load_data_and_phenotype(data_file,config,
                                      include_HPAF = False)
-    
+    print(df_fret['phenotype'])
