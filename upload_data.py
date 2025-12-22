@@ -9,10 +9,10 @@ Created on Mon Nov 10 10:11:41 2025
 # IMPORT
 # =============================================================================
 import os
+import numpy as np
 import pandas as pd
 import plotly
 import pickle
-import numpy as np
 import matplotlib.pyplot as plt
 import configparser
 import argparse
@@ -250,8 +250,7 @@ if __name__ == "__main__":
     # print(config_file)
     config.read(config_pipeline_file)
     # default_folder = os.path.join('/mnt', 'nas', '02_Analyzed_data', 'Image_analysis', '2025')
-    data_file = config.get('PathData','path_dataset_mmg_cluster')
-    data_file = config.get('PathData','path_mp_laptop')
+    data_file = config.get('PathData','path_dataset')
 
     df_fret = load_data_and_phenotype(data_file,config,
                                      include_HPAF = False)

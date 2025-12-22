@@ -431,8 +431,7 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     # print(config_file)
     config.read(config_pipeline_file)
-    # default_folder = os.path.join('/mnt', 'nas', '02_Analyzed_data', 'Image_analysis', '2025')
-    data_file = config.get('PathData','path_mp_laptop')
+    data_file = config.get('PathData','path_dataset')
    
     
     
