@@ -20,6 +20,7 @@ import pytensor.tensor as pt
 import configparser
 
 
+from icecream import ic
 
 import upload_data as upload_data
 import apoptosis_models as ap_models
@@ -345,12 +346,13 @@ def build_hierarchical_model_FRETexp(
         ic50_i = pt.take(ic50, drug_id)
         
         
-        emax_fct = 1 - (dose_i * emax_i) / (dose_i + ic50_i)
+        emax_fct = 100 * (1 - (dose_i * emax_i) / (dose_i + ic50_i))
         if beta0_drug_dependent:
             beta0_cell  = beta0_dd[drug_id] * emax_fct  \
                 + beta0_ph[phenotype_id]  + δbeta0
         else:
             beta0_cell  = beta0_ph[phenotype_id]  + δbeta0
+            
         beta1_cell = beta1_dd[drug_id]* emax_fct + beta1_ph[phenotype_id] + δbeta1
         beta2_cell  = beta2_dd[drug_id] * emax_fct + beta2_ph[phenotype_id]  + δbeta2
         tau_discend_cell  = tau_discend_dd[drug_id] * emax_fct \
@@ -360,12 +362,17 @@ def build_hierarchical_model_FRETexp(
         FRET0_cell  = FRET0_cl[clone_id]
         
       
-    
+        
+      
+        ic(beta0_dd[drug_id].eval(), emax_fct.eval(), beta0_ph[phenotype_id].eval(),δbeta0.eval())
+        ic(beta1_dd[drug_id].eval(), emax_fct.eval(), beta1_ph[phenotype_id].eval(),δbeta1.eval())
+        ic(beta2_dd[drug_id].eval(), emax_fct.eval(), beta2_ph[phenotype_id].eval(),δbeta2.eval())
+        ic(FRET0_cell.eval())
 
        
 
         # =======================================================
-        # 6. Solve EAIM per cell
+        # 6. Compute FRETexp per cell
         # =======================================================
         yhat_list = []
         
@@ -392,7 +399,7 @@ def build_hierarchical_model_FRETexp(
 
         # y_hat = pt.stack(yhat_list)
         y_hat = pt.concatenate(yhat_list)
-        print(yhat_list,len(data[mask_nan]))
+        print(len(y_hat.eval()),len(data[mask_nan]))
 
         # =======================================================
         # 7. Likelihood (NaNs are ignored automatically)
@@ -435,7 +442,7 @@ if __name__ == "__main__":
                                                   include_HPAF = False)
     
     
-    df_fret = df_fret.iloc[:100,:]
+    df_fret = df_fret.iloc[:10,:]
    
     # define time
     time_cols = [c for c in df_fret.columns if isinstance(c, (int, float))]
@@ -478,7 +485,7 @@ if __name__ == "__main__":
    
     
     # # Build Model
-    # model = build_hierarchical_model_FRETexp(
+    # model = build_hierarchical_model_EAIM(
     #     time_points=time_points,
     #     data=data,
     #     clone_id=clone_id,
@@ -506,7 +513,7 @@ if __name__ == "__main__":
     
     # Run inference
     # with model:
-    #     trace = pm.sample(tune=500, draw=1000, cores=4, chains=4)
+    #     trace = pm.sample(tune=500, draw=500, cores=4, chains=4)
         
     summary = az.summary(trace, hdi_prob=0.95)
     print(summary)
