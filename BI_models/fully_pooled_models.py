@@ -21,11 +21,15 @@ import configparser
 import sys
 
 from icecream import ic
-from pathlib import Path
+from pathlib import Path    
+from IPython.display import display
+
+
 
 # Add parent folder to Python path
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(parent_dir))
+
 import upload_data 
 import apoptosis_models as ap_models
 import FRETexp_parameter_distribution_analysis as prior_fit
@@ -42,9 +46,25 @@ def trim_outliers(series, q=0.10):
     high = series.quantile(1 - q)
     return series[(series >= low) & (series <= high)]
 
+
+def return_feature_value_according_to_level_name(level_name,df_fret):
+    if level_name == 'homogeneous':
+        return 'homogeneous'
+    else:
+        if level_name =='cellline':
+            feature = 'Cell Line'
+        if level_name =='clone':
+            feature = 'Clone'
+        if level_name =='drug':
+            feature = 'clone_drug'
+        if level_name == 'phenotype':
+            feature = 'clone_drug_phenotype'
+        return df_fret[feature].drop_duplicates().to_numpy()
+
+
 def generate_prior_dicts(FOSBE2022_data_path, parameter, level_name, level_id,  df_fret):
         mean_prior, var_prior = prior_fit.get_prior_distribution_Hela(FOSBE2022_data_path, parameter)
-        if level_name == 'cellline' or level_name == 'clone':
+        if level_name == 'cellline' or level_name == 'clone' or level_name == 'homogeneous':
             nb_cat = len(np.unique(level_id))        
             return [mean_prior[level_name]]*nb_cat, [var_prior[level_name]]*nb_cat
         elif level_name == 'drug':
@@ -149,17 +169,72 @@ def build_pooled_model_FRETexp(
         # create prior distribution for each category of the subpopulation
         nb_cat = len(np.unique(beta0_level_id))
         dict_distribution_beta0 = {}
+        categories_beta0 = return_feature_value_according_to_level_name(beta0_level_name,df_fret)
         for cat_id, cat in enumerate(np.unique(beta0_level_id)):
             print('cat_id, cat',cat_id, cat)
-            dict_distribution_beta0[cat] = pm.LogNormal(f"beta0_{cat}",  np.log(mean_beta0_cellline[cat_id]),  var_beta0_cellline[cat_id])
+            dict_distribution_beta0[cat] = pm.LogNormal(f"beta0_{categories_beta0[cat]}",  np.log(mean_beta0_cellline[cat_id]),  var_beta0_cellline[cat_id])
 
         # beta1
-        
-        beta1_cell  = pm.LogNormal("beta1", 0.047268093692721405/775, 0.07918652978955704)
-        beta2_cell   = pm.Normal("beta2",  -304.2607303288227/775, 540.2875623528233)
-        tau_discend_cell   = pm.Normal("tau_discend",  464.2787721210148, 81.68349775867487)
-        FRET0_cell   = pm.Normal("FRET0",  464.2787721210148, 81.68349775867487)
-        
+        beta1_level_name = parameter_levels['beta1']
+        beta1_level_id = level_id[beta1_level_name]
+        mean_beta1_cellline, var_beta1_cellline = generate_prior_dicts(FOSBE2022_data_path,
+                                                                        'beta1', 
+                                                                        beta1_level_name, 
+                                                                        beta1_level_id,
+                                                                        df_fret)
+        nb_cat = len(np.unique(beta1_level_id))
+        dict_distribution_beta1 = {}
+        categories_beta1 = return_feature_value_according_to_level_name(beta1_level_name,df_fret)
+        for cat_id, cat in enumerate(np.unique(beta1_level_id)):
+            print('cat_id, cat',cat_id, cat)
+            dict_distribution_beta1[cat] = pm.LogNormal(f"beta1_{categories_beta1[cat]}",  np.log(mean_beta1_cellline[cat_id]),  var_beta1_cellline[cat_id])
+
+        # beta2
+        beta2_level_name = parameter_levels['beta2']
+        beta2_level_id = level_id[beta2_level_name]
+        mean_beta2_cellline, var_beta2_cellline = generate_prior_dicts(FOSBE2022_data_path,
+                                                                        'beta2', 
+                                                                        beta2_level_name, 
+                                                                        beta2_level_id,
+                                                                        df_fret)
+        nb_cat = len(np.unique(beta2_level_id))
+        dict_distribution_beta2 = {}
+        categories_beta2 = return_feature_value_according_to_level_name(beta2_level_name,df_fret)
+        for cat_id, cat in enumerate(np.unique(beta2_level_id)):
+            print('cat_id, cat',cat_id, cat)
+            dict_distribution_beta2[cat] = pm.Normal(f"beta2_{categories_beta2[cat]}",  mean_beta2_cellline[cat_id],  var_beta2_cellline[cat_id])
+
+        # tau disc end
+        tau_discend_level_name = parameter_levels['tau_discend']
+        tau_discend_level_id = level_id[tau_discend_level_name]
+        mean_tau_discend_cellline, var_tau_discend_cellline = generate_prior_dicts(FOSBE2022_data_path,
+                                                                        'tau_DISCend_first_estimate', 
+                                                                        tau_discend_level_name, 
+                                                                        tau_discend_level_id,
+                                                                        df_fret)
+        nb_cat = len(np.unique(tau_discend_level_id))
+        dict_distribution_tau_discend = {}
+        categories_tau_discend = return_feature_value_according_to_level_name(tau_discend_level_name,df_fret)
+        for cat_id, cat in enumerate(np.unique(tau_discend_level_id)):
+            print('cat_id, cat',cat_id, cat)
+            dict_distribution_tau_discend[cat] = pm.Normal(f"tau_discend_{categories_tau_discend[cat]}",  mean_tau_discend_cellline[cat_id],  var_tau_discend_cellline[cat_id])
+
+        # FRET0
+        FRET0_level_name = parameter_levels['FRET0']
+        FRET0_level_id = level_id[FRET0_level_name]
+        mean_FRET0_cellline, var_FRET0_cellline = generate_prior_dicts(FOSBE2022_data_path,
+                                                                        'T=5min', 
+                                                                        FRET0_level_name, 
+                                                                        FRET0_level_id,
+                                                                        df_fret)
+        nb_cat = len(np.unique(FRET0_level_id))
+        dict_distribution_FRET0 = {}
+        categories_FRET0 = return_feature_value_according_to_level_name(FRET0_level_name,df_fret)
+        for cat_id, cat in enumerate(np.unique(FRET0_level_id)):
+            print('cat_id, cat',cat_id, cat)
+            dict_distribution_FRET0[cat] = pm.Normal(f"FRET0_{categories_FRET0[cat]}",  mean_FRET0_cellline[cat_id],  var_FRET0_cellline[cat_id])
+
+      
 
        
 
@@ -173,20 +248,29 @@ def build_pooled_model_FRETexp(
         for i in range(N_cells):
             data_cell = data[i,:]
             cat_beta0 = beta0_level_id[i]
+            cat_beta1 = beta1_level_id[i]
+            cat_beta2 = beta2_level_id[i]
+            cat_tau_discend = tau_discend_level_id[i]
+            cat_FRET0 = FRET0_level_id[i]
             mask_cell = ~np.isnan(data_cell)
             time_points_without_nan_cell = time_matrix[i,mask_cell]
-            # print(df_fret['phenotype'].iloc[i],cat_beta0 ,beta0_level_id[i],dict_distribution_beta0[cat_beta0].eval())
+            print(df_fret['clone_drug_phenotype'].iloc[i],cat_beta0 ,beta0_level_id[i],dict_distribution_beta0[cat_beta0].eval())
+            print(df_fret['clone_drug_phenotype'].iloc[i],cat_beta1 ,beta1_level_id[i],dict_distribution_beta1[cat_beta1].eval())
+            print(df_fret['clone_drug_phenotype'].iloc[i],cat_beta2 ,beta2_level_id[i],dict_distribution_beta2[cat_beta2].eval())
+            print(df_fret['clone_drug_phenotype'].iloc[i],cat_FRET0 ,FRET0_level_id[i],dict_distribution_FRET0[cat_FRET0].eval())
+            print(df_fret['clone_drug_phenotype'].iloc[i],cat_tau_discend ,tau_discend_level_id[i],dict_distribution_tau_discend[cat_tau_discend].eval())
+            print()
             # beta1_cell.eval(), 
             # beta2_cell.eval(),
             # tau_discend_cell.eval(),
             # FRET0_cell.eval(),
             # time_matrix[i,mask_cell])
             sol = ap_models.FRETexp_bayesian(time_points_without_nan_cell,
-                                             dict_distribution_beta0[cat_beta0 ], 
-                                             beta1_cell, 
-                                             beta2_cell,
-                                             tau_discend_cell,
-                                             FRET0_cell)
+                                             dict_distribution_beta0[cat_beta0], 
+                                             dict_distribution_beta1[cat_beta1], 
+                                             dict_distribution_beta2[cat_beta2],
+                                             dict_distribution_tau_discend[cat_tau_discend],
+                                             dict_distribution_FRET0[cat_FRET0])
             # print( sol.eval())
             yhat_list.append(sol)
 
@@ -227,6 +311,8 @@ if __name__ == "__main__":
     data_file = config.get('PathData','path_dataset')
 
     FOSBE2022_data_path = config.get('PathData','path_FOSBE2022')
+    output_path = config.get('PathData','path_output')
+    Path(output_path).mkdir(parents=True, exist_ok=True)   
    
     
     
@@ -236,8 +322,11 @@ if __name__ == "__main__":
                                                   include_HPAF = False)
     
     
-    df_fret = df_fret.iloc[300:400,:]
-   
+    df_fret = df_fret.iloc[0:100,:]
+
+    print(df_fret['Dose'].drop_duplicates())
+    print(list(df_fret.index))
+
     # define time
     time_cols = [c for c in df_fret.columns if isinstance(c, (int, float))]
     time_points = np.array(time_cols)
@@ -252,7 +341,7 @@ if __name__ == "__main__":
     print('relative dose',relative_dose)
     print(df_fret['phenotype'])
     
-    # define categories
+    # define categories inside each population level
     clone_labels = df_fret["Clone"].astype("category")
     clone_id = clone_labels.cat.codes.values
     
@@ -272,7 +361,7 @@ if __name__ == "__main__":
     drug_labels = df_fret["clone_drug"].astype("category")
     drug_id = drug_labels.cat.codes.values
     
-      
+    homogeneous_id = np.zeros(drug_id.shape,dtype=int)
     
     
     # extract into N_cells × T matrix
@@ -283,15 +372,12 @@ if __name__ == "__main__":
     mean_beta0_cellline, var_beta0_cellline = generate_prior_dicts(FOSBE2022_data_path, 'beta0', 'drug', drug_id,df_fret)
 
 
-    print(mean_beta0_cellline, var_beta0_cellline)
-
-    print(len(mean_beta0_cellline), np.unique(drug_id).shape)
 
     model = build_pooled_model_FRETexp(
         time_points=time_points,
         data=data,
-        level_id =  {'cellline':cellline_id,  'clone': clone_id,'drug': drug_id, 'phenotype':phenotype_id},
-        parameter_levels = {'beta0':'phenotype','beta1':'drug','beta2':'clone','tau_discend':'cellline'},
+        level_id =  {'cellline':cellline_id,  'clone': clone_id,'drug': drug_id, 'phenotype':phenotype_id, 'homogeneous':homogeneous_id},
+        parameter_levels = {'beta0':'phenotype','beta1':'drug','beta2':'clone','tau_discend':'cellline','FRET0':'homogeneous'},
         FOSBE2022_data_path = FOSBE2022_data_path
 
     )
@@ -299,9 +385,18 @@ if __name__ == "__main__":
     # # Run inference
     with model:
         trace = pm.sample(tune=1000, draw=1000, cores=4, chains=4)
-        
+    # %%  
     summary = az.summary(trace, hdi_prob=0.95)
+    az.to_netcdf(trace, os.path.join(output_path,"trace.nc"))
     print(summary)
+
+ 
+   
+
+    pm.model_to_graphviz(model)
+    graph = pm.model_to_graphviz(model)
+    graph.render(os.path.join(output_path,"model_graph"), format="png", cleanup=True)
+
     
   
     

@@ -7,3 +7,5 @@ pandas
 pytensor
 openpyxl
 arviz
+IPython
+graphviz

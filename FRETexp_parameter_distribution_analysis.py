@@ -59,7 +59,8 @@ def get_prior_distribution_Hela(data_path, parameter = 'beta0'):
     high_sen = high[high.phenotype == 0.0]
 
 
-    mean = {'cellline':trim_outliers(all_concat[parameter]).mean(),
+    mean = {'homogeneous':trim_outliers(all_concat[parameter]).mean(),
+            'cellline':trim_outliers(all_concat[parameter]).mean(),
             'clone': trim_outliers(all_concat[parameter]).mean(),
             'drug_low':trim_outliers(low[parameter]).mean(),
             'drug_ic50':trim_outliers(ic50[parameter]).mean(),
@@ -70,7 +71,8 @@ def get_prior_distribution_Hela(data_path, parameter = 'beta0'):
             'drug_low_sen':trim_outliers(low_sen[parameter]).mean(),
             'drug_ic50_sen':trim_outliers(ic50_sen[parameter]).mean(),
             'drug_high_sen':trim_outliers(high_sen[parameter]).mean()}
-    var = {'cellline':trim_outliers(all_concat[parameter]).var(),
+    var = {'homogeneous':trim_outliers(all_concat[parameter]).var(),
+            'cellline':trim_outliers(all_concat[parameter]).var(),
             'clone': trim_outliers(all_concat[parameter]).var(),
             'drug_low':trim_outliers(low[parameter]).var(),
             'drug_ic50':trim_outliers(ic50[parameter]).var(),
